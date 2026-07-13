@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.rms.desktop.POSController" styleClass="root">
+    
+    <!-- Left Pane: Dynamic Categories Navigation -->
+    <left>
+        <VBox styleClass="sidebar" spacing="10">
+            <padding><Insets top="20" right="15" bottom="20" left="15"/></padding>
+            <Label text="RMS POS" styleClass="brand-text"/>
+            <Separator/>
+            <Label text="CATEGORIES" styleClass="section-label"/>
+            <VBox fx:id="categoryBox" spacing="8">
+                <!-- Categories dynamically injected by POSController -->
+            </VBox>
+            <Region VBox.vgrow="ALWAYS"/>
+            <Separator/>
+            <Label fx:id="connectionLabel" text="Connecting..." styleClass="connection-label"/>
+        </VBox>
+    </left>
+
+    <!-- Center Pane: Scrollable Menu Grid -->
+    <center>
+        <VBox spacing="15">
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label fx:id="menuHeaderLabel" text="All Items" styleClass="header-text"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="itemCountLabel" text="0 items" styleClass="item-count-label"/>
+            </HBox>
+            
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="menu-scroll">
+                <TilePane fx:id="menuGrid" hgap="15" vgap="15" prefColumns="3">
+                    <!-- Menu item buttons dynamically injected by POSController -->
+                </TilePane>
+            </ScrollPane>
+        </VBox>
+    </center>
+
+    <!-- Right Pane: Active Ticket / Cart -->
+    <right>
+        <VBox styleClass="cart-pane" spacing="10" prefWidth="320">
+            <padding><Insets top="20" right="15" bottom="15" left="15"/></padding>
+            
+            <!-- Table Selector -->
+            <Label text="TABLE" styleClass="section-label"/>
+            <ComboBox fx:id="tableSelector" maxWidth="Infinity" styleClass="table-combo" promptText="Select Table..."/>
+            
+            <Separator/>
+            
+            <!-- Ticket Header -->
+            <HBox alignment="CENTER_LEFT">
+                <Label text="Current Ticket" styleClass="header-text"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="ticketCountLabel" text="0 items" styleClass="ticket-count"/>
+            </HBox>
+            
+            <!-- Cart Items -->
+            <VBox fx:id="cartItemsBox" VBox.vgrow="ALWAYS" spacing="5" styleClass="cart-items-container">
+                <!-- Cart items dynamically injected -->
+            </VBox>
+            
+            <Separator/>
+            
+            <!-- Subtotal / Tax / Total -->
+            <HBox alignment="CENTER" styleClass="subtotal-row">
+                <Label text="Subtotal" styleClass="subtotal-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="subtotalLabel" text="\$0.00" styleClass="subtotal-value"/>
+            </HBox>
+            <HBox alignment="CENTER" styleClass="tax-row">
+                <Label text="Tax (10%)" styleClass="subtotal-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="taxLabel" text="\$0.00" styleClass="subtotal-value"/>
+            </HBox>
+            <HBox alignment="CENTER" styleClass="total-box">
+                <Label text="TOTAL" styleClass="total-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="totalLabel" text="\$0.00" styleClass="total-value"/>
+            </HBox>
+            
+            <!-- Toast notification area -->
+            <Label fx:id="toastLabel" text="" styleClass="toast-label" managed="false" visible="false" maxWidth="Infinity"/>
+            
+            <Button text="PAY / SEND TO KITCHEN" styleClass="checkout-btn" onAction="#checkout" maxWidth="Infinity"/>
+            <Button text="Clear Ticket" styleClass="cancel-btn" onAction="#clearCart" maxWidth="Infinity"/>
+        </VBox>
+    </right>
+
+    <!-- Bottom: Status Bar -->
+    <bottom>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT" spacing="20">
+            <padding><Insets top="8" right="20" bottom="8" left="20"/></padding>
+            <Label fx:id="statusLabel" text="Ready" styleClass="status-text"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="clockLabel" text="" styleClass="status-text"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

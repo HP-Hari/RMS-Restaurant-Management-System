@@ -1,0 +1,139 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static jazzmin %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+
+{% block content_title %} {% trans 'Dashboard' %} {% endblock %}
+
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active">{% trans 'Dashboard' %}</li>
+    </ol>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- KPI ROW -->
+    <div class="row">
+        <!-- Today's Orders -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>15</h3>
+                    <p>Today's Orders</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <a href="{% url 'admin:core_order_changelist' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        
+        <!-- Today's Revenue -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>$450.00</h3>
+                    <p>Today's Revenue</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <a href="{% url 'admin:core_order_changelist' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Low Stock Alerts -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>2</h3>
+                    <p>Low Stock Alerts</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <a href="{% url 'admin:core_inventoryitem_changelist' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+
+        <!-- Tables Occupied -->
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>3/5</h3>
+                    <p>Tables Occupied</p>
+                </div>
+                <div class="icon">
+                    <i class="fas fa-chair"></i>
+                </div>
+                <a href="{% url 'admin:core_table_changelist' %}" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD APPS (Jazzmin Default) -->
+    <div class="row">
+        <div class="col-12 col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0">{% trans 'Application Modules' %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for app in app_list %}
+                            <div class="col-md-6 mb-3">
+                                <h6>{{ app.name }}</h6>
+                                <div class="list-group">
+                                    {% for model in app.models %}
+                                        <a href="{{ model.admin_url }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                            {{ model.name }}
+                                            {% if model.add_url %}
+                                                <span class="badge badge-primary badge-pill"><i class="fas fa-plus"></i> Add</span>
+                                            {% endif %}
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-3">
+            <div id="content-related">
+                <div class="module" id="recent-actions-module">
+                    <h4 class="mb-3">{% trans 'Recent actions' %}</h4>
+                    {% load log %}
+                    {% get_admin_log 10 as admin_log for_user user %}
+                    {% if not admin_log %}
+                        <p>{% trans 'None available' %}</p>
+                    {% else %}
+                        <div class="timeline">
+                            {% for entry in admin_log %}
+                                <div>
+                                    <i class="fas fa-circle {% if entry.is_addition %}bg-success{% elif entry.is_change %}bg-primary{% else %}bg-danger{% endif %}"></i>
+                                    <div class="timeline-item">
+                                        <span class="time"><i class="fas fa-clock"></i> {{ entry.action_time|timesince }} ago</span>
+                                        <h3 class="timeline-header no-border">
+                                            {% if entry.is_deletion or not entry.get_admin_url %}
+                                                {{ entry.object_repr }}
+                                            {% else %}
+                                                <a href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+                                            {% endif %}
+                                            {% if entry.content_type %}
+                                                <span class="text-muted">({{ entry.content_type }})</span>
+                                            {% endif %}
+                                        </h3>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

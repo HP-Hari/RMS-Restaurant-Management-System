@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="#{app.title}">RMS Point of Sale</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header class="glass-panel">
+        <h1 th:text="#{app.title}">RMS POS</h1>
+        <div class="user-info">Logged in as: Staff</div>
+    </header>
+
+    <main class="main-container">
+        <!-- Menu Section -->
+        <section class="menu-section glass-panel">
+            <h2 th:text="#{pos.menu}" style="padding: 1.5rem 1.5rem 0;">Menu Items</h2>
+            <div class="menu-grid" style="padding: 0 1.5rem 1.5rem;">
+                <!-- We simulate fetching menu items, but we will hardcode some for demonstration -->
+                <div class="menu-item glass-panel" onclick="addToCart('Burger', 12.50)">
+                    <h3>Classic Burger</h3>
+                    <p>$12.50</p>
+                </div>
+                <div class="menu-item glass-panel" onclick="addToCart('Pizza', 18.00)">
+                    <h3>Margherita Pizza</h3>
+                    <p>$18.00</p>
+                </div>
+                <div class="menu-item glass-panel" onclick="addToCart('Pasta', 14.00)">
+                    <h3>Truffle Pasta</h3>
+                    <p>$14.00</p>
+                </div>
+                <div class="menu-item glass-panel" onclick="addToCart('Salad', 9.50)">
+                    <h3>Caesar Salad</h3>
+                    <p>$9.50</p>
+                </div>
+                <div class="menu-item glass-panel" onclick="addToCart('Soda', 3.00)">
+                    <h3>Craft Soda</h3>
+                    <p>$3.00</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cart Section -->
+        <section class="cart-section glass-panel">
+            <h2 th:text="#{pos.cart}">Current Order</h2>
+            
+            <div class="cart-items" id="cartItems">
+                <!-- Items will be injected here via JS -->
+            </div>
+
+            <div class="cart-summary">
+                <div class="cart-total">
+                    <span th:text="#{pos.total}">Total</span>
+                    <span id="cartTotalValue">$0.00</span>
+                </div>
+                
+                <form action="/pos/checkout" method="POST" id="checkoutForm">
+                    <label th:text="#{pos.table}">Select Table</label>
+                    <select name="tableId" required>
+                        <option value="1">Table 1</option>
+                        <option value="2">Table 2</option>
+                        <option value="3">Table 3</option>
+                        <option value="4">Table 4</option>
+                    </select>
+                    
+                    <input type="hidden" name="totalAmount" id="hiddenTotal" value="0.00">
+                    <button type="submit" class="btn btn-primary" th:text="#{pos.checkout}">Place Order</button>
+                    <button type="button" class="btn btn-danger" onclick="clearCart()" th:text="#{pos.cancel}">Cancel Order</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let cart = [];
+        let total = 0;
+
+        function addToCart(name, price) {
+            cart.push({name, price});
+            total += price;
+            updateCartUI();
+        }
+
+        function clearCart() {
+            cart = [];
+            total = 0;
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItems');
+            container.innerHTML = '';
+            
+            cart.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="cart-item">
+                        <span>${item.name}</span>
+                        <span>$${item.price.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('cartTotalValue').innerText = '$' + total.toFixed(2);
+            document.getElementById('hiddenTotal').value = total.toFixed(2);
+        }
+    </script>
+</body>
+</html>

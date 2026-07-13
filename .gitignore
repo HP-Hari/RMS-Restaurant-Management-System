@@ -1,0 +1,45 @@
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Maven Build Output
+**/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.restore
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# POS Terminal Local Data
+receipts/
+
+# Local Maven Binaries
+operations_service/apache-maven-3.9.9/
+operations_service/apache-maven-3.9.9-bin.tar.gz
+operations_service/maven.tar.gz
+
+# System Files
+.DS_Store
+Thumbs.db
