@@ -31,12 +31,32 @@ public class POSController {
     @FXML private TilePane menuGrid;
     @FXML private Label menuHeaderLabel;
     @FXML private Label itemCountLabel;
+
+    // Fulfillment Channel & Customer Controls
+    @FXML private Button dineInBtn;
+    @FXML private Button takeoutBtn;
+    @FXML private Button deliveryBtn;
+    @FXML private VBox tableBox;
     @FXML private ComboBox<String> tableSelector;
+    @FXML private VBox customerBox;
+    @FXML private TextField customerNameInput;
+    @FXML private TextField customerPhoneInput;
+
+    // Cart Controls
     @FXML private VBox cartItemsBox;
     @FXML private Label ticketCountLabel;
+    
+    // Discount & Payment Controls
+    @FXML private ComboBox<String> discountSelector;
+    @FXML private ComboBox<String> paymentSelector;
+    @FXML private HBox discountRow;
+    @FXML private Label discountNameLabel;
+    @FXML private Label discountValLabel;
     @FXML private Label subtotalLabel;
     @FXML private Label taxLabel;
     @FXML private Label totalLabel;
+
+    // Status & Toasts
     @FXML private Label toastLabel;
     @FXML private Label statusLabel;
     @FXML private Label clockLabel;
@@ -47,24 +67,82 @@ public class POSController {
     private static final String BASE_URL = "http://localhost:8080";
     private static final double TAX_RATE = 0.10;
 
-    // All menu items loaded from API
     private List<JsonNode> allMenuItems = new ArrayList<>();
-    // Cart: map of item name -> {price, quantity}
     private final LinkedHashMap<String, double[]> cart = new LinkedHashMap<>();
-    // Table ID map: display string -> mongo ID
     private final Map<String, String> tableIdMap = new HashMap<>();
-    // Currently selected category
-    private String activeCategory = null;
-    // Currently active category button
+    
+    private String activeOrderType = "DINE_IN";
     private Button activeCategoryBtn = null;
 
     @FXML
     public void initialize() {
+        setupDiscountsAndPayments();
         loadCategories();
         loadMenuItems();
         loadTables();
         startClock();
         checkConnection();
+    }
+
+    private void setupDiscountsAndPayments() {
+        // Setup Discount Options
+        ObservableList<String> discounts = FXCollections.observableArrayList(
+                "None",
+                "Staff Discount (10%)",
+                "VIP Discount (15%)",
+                "Promo Code ($5 Off)"
+        );
+        discountSelector.setItems(discounts);
+        discountSelector.getSelectionModel().selectFirst();
+        discountSelector.setOnAction(e -> renderCart());
+
+        // Setup Payment Options
+        ObservableList<String> payments = FXCollections.observableArrayList(
+                "💵 Cash",
+                "💳 Credit / Debit Card",
+                "📱 UPI / QR Code"
+        );
+        paymentSelector.setItems(payments);
+        paymentSelector.getSelectionModel().selectFirst();
+    }
+
+    // ─── CHANNEL SELECTION ───────────────────────────────────
+
+    @FXML
+    public void selectDineIn() {
+        activeOrderType = "DINE_IN";
+        updateChannelStyles(dineInBtn);
+        tableBox.setManaged(true);
+        tableBox.setVisible(true);
+        customerBox.setManaged(false);
+        customerBox.setVisible(false);
+    }
+
+    @FXML
+    public void selectTakeout() {
+        activeOrderType = "TAKEOUT";
+        updateChannelStyles(takeoutBtn);
+        tableBox.setManaged(false);
+        tableBox.setVisible(false);
+        customerBox.setManaged(true);
+        customerBox.setVisible(true);
+    }
+
+    @FXML
+    public void selectDelivery() {
+        activeOrderType = "DELIVERY";
+        updateChannelStyles(deliveryBtn);
+        tableBox.setManaged(false);
+        tableBox.setVisible(false);
+        customerBox.setManaged(true);
+        customerBox.setVisible(true);
+    }
+
+    private void updateChannelStyles(Button activeBtn) {
+        dineInBtn.getStyleClass().remove("channel-btn-active");
+        takeoutBtn.getStyleClass().remove("channel-btn-active");
+        deliveryBtn.getStyleClass().remove("channel-btn-active");
+        activeBtn.getStyleClass().add("channel-btn-active");
     }
 
     // ─── DATA LOADING ────────────────────────────────────────
@@ -74,7 +152,6 @@ public class POSController {
             Platform.runLater(() -> {
                 try {
                     JsonNode root = mapper.readTree(body);
-                    // "All Items" button
                     Button allBtn = createCategoryButton("All Items", "\uD83C\uDF7D");
                     allBtn.getStyleClass().add("nav-btn-active");
                     activeCategoryBtn = allBtn;
@@ -150,7 +227,6 @@ public class POSController {
     // ─── CATEGORY FILTERING ──────────────────────────────────
 
     private void filterByCategory(String category, Button btn) {
-        activeCategory = category;
         if (activeCategoryBtn != null) {
             activeCategoryBtn.getStyleClass().remove("nav-btn-active");
         }
@@ -235,12 +311,10 @@ public class POSController {
             subtotal += price * qty;
             totalQty += qty;
 
-            // Cart item row
             HBox row = new HBox(8);
             row.setAlignment(Pos.CENTER_LEFT);
             row.getStyleClass().add("cart-item-row");
 
-            // Item info
             VBox info = new VBox(2);
             HBox.setHgrow(info, Priority.ALWAYS);
             Label nameLabel = new Label(name);
@@ -249,7 +323,6 @@ public class POSController {
             priceInfo.getStyleClass().add("cart-item-price");
             info.getChildren().addAll(nameLabel, priceInfo);
 
-            // Quantity controls
             HBox qtyBox = new HBox(4);
             qtyBox.setAlignment(Pos.CENTER);
             Button minusBtn = new Button("-");
@@ -262,7 +335,6 @@ public class POSController {
             plusBtn.setOnAction(e -> changeQuantity(name, 1));
             qtyBox.getChildren().addAll(minusBtn, qtyLabel, plusBtn);
 
-            // Line total + remove
             VBox lineBox = new VBox(2);
             lineBox.setAlignment(Pos.CENTER_RIGHT);
             Label lineTotal = new Label(String.format("$%.2f", price * qty));
@@ -276,8 +348,31 @@ public class POSController {
             cartItemsBox.getChildren().add(row);
         }
 
-        double tax = subtotal * TAX_RATE;
-        double total = subtotal + tax;
+        // Calculate Discount
+        double discountAmount = 0.0;
+        String selectedDiscount = discountSelector.getValue();
+        if ("Staff Discount (10%)".equals(selectedDiscount)) {
+            discountAmount = subtotal * 0.10;
+        } else if ("VIP Discount (15%)".equals(selectedDiscount)) {
+            discountAmount = subtotal * 0.15;
+        } else if ("Promo Code ($5 Off)".equals(selectedDiscount) && subtotal > 5.0) {
+            discountAmount = 5.00;
+        }
+
+        if (discountAmount > 0) {
+            discountRow.setManaged(true);
+            discountRow.setVisible(true);
+            discountNameLabel.setText(selectedDiscount);
+            discountValLabel.setText(String.format("-$%.2f", discountAmount));
+        } else {
+            discountRow.setManaged(false);
+            discountRow.setVisible(false);
+        }
+
+        double taxableSubtotal = Math.max(0, subtotal - discountAmount);
+        double tax = taxableSubtotal * TAX_RATE;
+        double total = taxableSubtotal + tax;
+
         ticketCountLabel.setText(totalQty + " item" + (totalQty != 1 ? "s" : ""));
         subtotalLabel.setText(String.format("$%.2f", subtotal));
         taxLabel.setText(String.format("$%.2f", tax));
@@ -295,34 +390,59 @@ public class POSController {
     @FXML
     public void checkout() {
         if (cart.isEmpty()) return;
-        if (tableSelector.getValue() == null) {
-            showToast("Please select a table first!", "toast-error");
-            return;
+        
+        int tableVal = 0;
+        if ("DINE_IN".equals(activeOrderType)) {
+            if (tableSelector.getValue() == null) {
+                showToast("Please select a table first!", "toast-error");
+                return;
+            }
+            String tableDisplay = tableSelector.getValue();
+            String tableNum = tableDisplay.replaceAll("[^0-9]", "").trim();
+            if (tableNum.length() > 2) tableNum = tableNum.substring(0, 1);
+            try { tableVal = Integer.parseInt(tableNum); } catch (Exception e) {}
+        } else {
+            if (customerNameInput.getText() == null || customerNameInput.getText().trim().isEmpty()) {
+                showToast("Please enter Customer Name!", "toast-error");
+                return;
+            }
         }
 
         double subtotal = 0;
         for (double[] data : cart.values()) {
             subtotal += data[0] * data[1];
         }
-        double tax = subtotal * TAX_RATE;
-        double total = subtotal + tax;
+        
+        double discountAmount = 0.0;
+        String selectedDiscount = discountSelector.getValue();
+        if ("Staff Discount (10%)".equals(selectedDiscount)) discountAmount = subtotal * 0.10;
+        else if ("VIP Discount (15%)".equals(selectedDiscount)) discountAmount = subtotal * 0.15;
+        else if ("Promo Code ($5 Off)".equals(selectedDiscount) && subtotal > 5.0) discountAmount = 5.00;
 
-        String tableDisplay = tableSelector.getValue();
-        // Extract table number from display string "Table X (...)"
-        String tableNum = tableDisplay.replaceAll("[^0-9]", "").trim();
-        if (tableNum.length() > 2) tableNum = tableNum.substring(0, 1); // just first digit
+        double taxableSubtotal = Math.max(0, subtotal - discountAmount);
+        double tax = taxableSubtotal * TAX_RATE;
+        double total = taxableSubtotal + tax;
+
+        String rawPayment = paymentSelector.getValue();
+        String paymentMethod = "CASH";
+        if (rawPayment != null) {
+            if (rawPayment.contains("Card")) paymentMethod = "CARD";
+            else if (rawPayment.contains("UPI")) paymentMethod = "UPI";
+        }
 
         try {
-            int tableVal = 0;
-            try {
-                tableVal = Integer.parseInt(tableNum);
-            } catch (NumberFormatException e) {}
-            
             Map<String, Object> orderMap = new HashMap<>();
+            orderMap.put("order_type", activeOrderType);
             orderMap.put("table_number", tableVal);
             orderMap.put("total_amount", total);
+            orderMap.put("discount_amount", discountAmount);
+            orderMap.put("discount_name", "None".equals(selectedDiscount) ? "" : selectedDiscount);
+            orderMap.put("payment_method", paymentMethod);
+            orderMap.put("payment_status", "PAID");
+            orderMap.put("customer_name", customerNameInput.getText() != null ? customerNameInput.getText().trim() : "");
+            orderMap.put("customer_phone", customerPhoneInput.getText() != null ? customerPhoneInput.getText().trim() : "");
             orderMap.put("status", "PENDING");
-            
+
             List<Map<String, Object>> itemsList = new ArrayList<>();
             for (Map.Entry<String, double[]> entry : cart.entrySet()) {
                 Map<String, Object> itemMap = new HashMap<>();
@@ -332,7 +452,7 @@ public class POSController {
                 itemsList.add(itemMap);
             }
             orderMap.put("items_json", mapper.writeValueAsString(itemsList));
-            
+
             String jsonBody = mapper.writeValueAsString(orderMap);
 
             HttpRequest request = HttpRequest.newBuilder()
@@ -343,8 +463,10 @@ public class POSController {
 
             final int finalTableVal = tableVal;
             final double finalSubtotal = subtotal;
+            final double finalDiscount = discountAmount;
             final double finalTax = tax;
             final double finalTotal = total;
+            final String finalPaymentMethod = paymentMethod;
 
             httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                     .thenAccept(response -> {
@@ -355,12 +477,12 @@ public class POSController {
                                     JsonNode orderNode = mapper.readTree(response.body());
                                     createdId = orderNode.has("id") ? orderNode.get("id").asText() : "N/A";
                                 } catch (Exception ex) {}
-                                
-                                generateReceiptFile(createdId, finalTableVal, finalSubtotal, finalTax, finalTotal);
-                                
+
+                                generateReceiptFile(createdId, activeOrderType, finalTableVal, customerNameInput.getText(), customerPhoneInput.getText(), finalSubtotal, finalDiscount, finalTax, finalTotal, finalPaymentMethod);
+
                                 cart.clear();
                                 renderCart();
-                                showToast("Order Sent & Receipt Printed!", "toast-success");
+                                showToast("Order Placed & Receipt Printed!", "toast-success");
                                 statusLabel.setText("Last order placed at " +
                                         LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
                             } else {
@@ -377,16 +499,14 @@ public class POSController {
         }
     }
 
-    private void generateReceiptFile(String orderId, int tableNum, double subtotal, double tax, double total) {
+    private void generateReceiptFile(String orderId, String orderType, int tableNum, String custName, String custPhone, double subtotal, double discount, double tax, double total, String payMethod) {
         try {
             java.io.File receiptsDir = new java.io.File("/Users/hari/RMS/receipts");
-            if (!receiptsDir.exists()) {
-                receiptsDir.mkdirs();
-            }
-            
+            if (!receiptsDir.exists()) receiptsDir.mkdirs();
+
             String filename = String.format("receipt_order_%s.txt", orderId);
             java.io.File receiptFile = new java.io.File(receiptsDir, filename);
-            
+
             java.io.PrintWriter writer = new java.io.PrintWriter(receiptFile);
             writer.println("========================================");
             writer.println("            RMS PREMIUM POS");
@@ -394,11 +514,18 @@ public class POSController {
             writer.println("========================================");
             writer.println("Date: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             writer.println("Order ID: " + orderId);
-            writer.println("Table: " + tableNum);
+            writer.println("Channel:  " + orderType);
+            if ("DINE_IN".equals(orderType)) {
+                writer.println("Table #:  " + tableNum);
+            } else {
+                writer.println("Customer: " + (custName != null ? custName : "Walk-In"));
+                if (custPhone != null && !custPhone.isEmpty()) writer.println("Phone:    " + custPhone);
+            }
+            writer.println("Tender:   " + payMethod + " [PAID]");
             writer.println("----------------------------------------");
             writer.printf("%-4s %-25s %7s\n", "Qty", "Item", "Price");
             writer.println("----------------------------------------");
-            
+
             for (Map.Entry<String, double[]> entry : cart.entrySet()) {
                 String name = entry.getKey();
                 double price = entry.getValue()[0];
@@ -406,16 +533,19 @@ public class POSController {
                 String displayName = name.length() > 25 ? name.substring(0, 22) + "..." : name;
                 writer.printf("%-4d %-25s $%6.2f\n", qty, displayName, price * qty);
             }
-            
+
             writer.println("----------------------------------------");
             writer.printf("%-30s $%6.2f\n", "Subtotal:", subtotal);
+            if (discount > 0) {
+                writer.printf("%-30s -$%5.2f\n", "Discount:", discount);
+            }
             writer.printf("%-30s $%6.2f\n", "Tax (10%):", tax);
             writer.printf("%-30s $%6.2f\n", "TOTAL:", total);
             writer.println("========================================");
             writer.println("       SENT TO KITCHEN / PRINTED");
             writer.println("========================================");
             writer.close();
-            
+
             System.out.println("Receipt printed to: " + receiptFile.getAbsolutePath());
             sendToPhysicalPrinter(receiptFile);
         } catch (Exception e) {
@@ -430,12 +560,12 @@ public class POSController {
                 System.out.println("No default print service found. Local copy saved.");
                 return;
             }
-            
+
             javax.print.DocPrintJob job = defaultPrinter.createPrintJob();
             java.io.FileInputStream fis = new java.io.FileInputStream(receiptFile);
             javax.print.DocFlavor flavor = javax.print.DocFlavor.INPUT_STREAM.AUTOSENSE;
             javax.print.Doc doc = new javax.print.SimpleDoc(fis, flavor, null);
-            
+
             job.print(doc, null);
             fis.close();
             System.out.println("Sent print job to OS default printer: " + defaultPrinter.getName());
@@ -489,8 +619,6 @@ public class POSController {
             Platform.runLater(() -> connectionLabel.setText("\u26AB Connected"));
         });
     }
-
-    // ─── HTTP HELPER ─────────────────────────────────────────
 
     private void httpGet(String path, java.util.function.Consumer<String> onSuccess) {
         HttpRequest request = HttpRequest.newBuilder()

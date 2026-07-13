@@ -41,12 +41,29 @@
 
     <!-- Right Pane: Active Ticket / Cart -->
     <right>
-        <VBox styleClass="cart-pane" spacing="10" prefWidth="320">
-            <padding><Insets top="20" right="15" bottom="15" left="15"/></padding>
+        <VBox styleClass="cart-pane" spacing="10" prefWidth="350">
+            <padding><Insets top="15" right="15" bottom="15" left="15"/></padding>
             
-            <!-- Table Selector -->
-            <Label text="TABLE" styleClass="section-label"/>
-            <ComboBox fx:id="tableSelector" maxWidth="Infinity" styleClass="table-combo" promptText="Select Table..."/>
+            <!-- Channel / Order Type Toggle -->
+            <Label text="FULFILLMENT CHANNEL" styleClass="section-label"/>
+            <HBox spacing="5" alignment="CENTER">
+                <Button fx:id="dineInBtn" text="🍽️ Dine-In" styleClass="channel-btn, channel-btn-active" onAction="#selectDineIn" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button fx:id="takeoutBtn" text="🛍️ Takeout" styleClass="channel-btn" onAction="#selectTakeout" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button fx:id="deliveryBtn" text="🚚 Delivery" styleClass="channel-btn" onAction="#selectDelivery" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+            
+            <!-- Table Selector (Dine-In) -->
+            <VBox fx:id="tableBox" spacing="4">
+                <Label text="TABLE" styleClass="section-label"/>
+                <ComboBox fx:id="tableSelector" maxWidth="Infinity" styleClass="table-combo" promptText="Select Table..."/>
+            </VBox>
+
+            <!-- Customer Details (Takeout / Delivery) -->
+            <VBox fx:id="customerBox" spacing="6" managed="false" visible="false">
+                <Label text="CUSTOMER INFO" styleClass="section-label"/>
+                <TextField fx:id="customerNameInput" promptText="Customer Name" styleClass="input-field"/>
+                <TextField fx:id="customerPhoneInput" promptText="Contact Number" styleClass="input-field"/>
+            </VBox>
             
             <Separator/>
             
@@ -63,12 +80,29 @@
             </VBox>
             
             <Separator/>
+
+            <!-- Discount & Payment Controls -->
+            <HBox spacing="8" alignment="CENTER">
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="DISCOUNT" styleClass="section-label"/>
+                    <ComboBox fx:id="discountSelector" maxWidth="Infinity" styleClass="table-combo" promptText="None"/>
+                </VBox>
+                <VBox HBox.hgrow="ALWAYS" spacing="2">
+                    <Label text="PAYMENT" styleClass="section-label"/>
+                    <ComboBox fx:id="paymentSelector" maxWidth="Infinity" styleClass="table-combo"/>
+                </VBox>
+            </HBox>
             
-            <!-- Subtotal / Tax / Total -->
+            <!-- Subtotal / Discount / Tax / Total -->
             <HBox alignment="CENTER" styleClass="subtotal-row">
                 <Label text="Subtotal" styleClass="subtotal-label"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label fx:id="subtotalLabel" text="\$0.00" styleClass="subtotal-value"/>
+            </HBox>
+            <HBox fx:id="discountRow" alignment="CENTER" styleClass="subtotal-row" managed="false" visible="false">
+                <Label fx:id="discountNameLabel" text="Discount" styleClass="discount-label"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="discountValLabel" text="-\$0.00" styleClass="discount-value"/>
             </HBox>
             <HBox alignment="CENTER" styleClass="tax-row">
                 <Label text="Tax (10%)" styleClass="subtotal-label"/>

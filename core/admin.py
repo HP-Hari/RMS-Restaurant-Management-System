@@ -67,10 +67,31 @@ class ReservationAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'table_number', 'ordered_items', 'formatted_total', 'order_status', 'created_at', 'handled_by_username')
-    list_filter = ('status', 'created_at')
-    search_fields = ('handled_by_username',)
+    list_display = ('id', 'channel_badge', 'table_number', 'ordered_items', 'formatted_total', 'payment_badge', 'order_status', 'created_at')
+    list_filter = ('order_type', 'payment_method', 'payment_status', 'status', 'created_at')
+    search_fields = ('customer_name', 'customer_phone', 'handled_by_username')
     actions = [mark_completed, mark_cancelled, mark_preparing]
+
+    def channel_badge(self, obj):
+        badges = {
+            'DINE_IN': ('#6366f1', '🍽️ Dine-In'),
+            'TAKEOUT': ('#8b5cf6', '🛍️ Takeout'),
+            'DELIVERY': ('#ec4899', '🚚 Delivery'),
+        }
+        color, label = badges.get(obj.order_type, ('#64748b', obj.order_type or 'Dine-In'))
+        return format_html('<span style="background-color: {}; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; font-size: 11px;">{}</span>', color, label)
+    channel_badge.short_description = 'Channel'
+
+    def payment_badge(self, obj):
+        methods = {
+            'CASH': '💵 Cash',
+            'CARD': '💳 Card',
+            'UPI': '📱 UPI / QR',
+        }
+        method_str = methods.get(obj.payment_method, obj.payment_method or 'Cash')
+        status_color = '#10b981' if obj.payment_status == 'PAID' else '#ef4444'
+        return format_html('<span>{}</span> <span style="color: {}; font-weight: bold; font-size: 11px;">[{}]</span>', method_str, status_color, obj.payment_status or 'PAID')
+    payment_badge.short_description = 'Payment'
 
     def ordered_items(self, obj):
         import json
@@ -78,7 +99,7 @@ class OrderAdmin(admin.ModelAdmin):
             return "No items"
         try:
             items = json.loads(obj.items_json)
-            html = '<ul style="margin: 0; padding-left: 15px;">'
+            html = '<ul style="margin: 0; padding-left: 15px; font-size: 12px;">'
             for item in items:
                 html += f"<li>{item['quantity']}x <strong>{item['name']}</strong> (${item['price']:.2f})</li>"
             html += "</ul>"
@@ -88,7 +109,8 @@ class OrderAdmin(admin.ModelAdmin):
     ordered_items.short_description = 'Ordered Items'
 
     def formatted_total(self, obj):
-        return format_html('<strong>${}</strong>', f"{obj.total_amount:.2f}")
+        disc = f" <small style='color:#ef4444;'>(-${obj.discount_amount:.2f})</small>" if obj.discount_amount and obj.discount_amount > 0 else ""
+        return format_html('<strong>${}</strong>{}', f"{obj.total_amount:.2f}", format_html(disc))
     formatted_total.short_description = 'Total'
 
     def order_status(self, obj):
